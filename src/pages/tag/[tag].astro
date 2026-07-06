@@ -1,0 +1,35 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import CategoryNav from "../../components/CategoryNav.astro";
+import EntryCard from "../../components/EntryCard.astro";
+import { getEntriesByTag, getTags, slugify } from "../../lib/entries";
+
+export function getStaticPaths() {
+  return getTags().map((tag) => ({
+    params: { tag: slugify(tag) },
+    props: { tag },
+  }));
+}
+
+const { tag } = Astro.props;
+const entries = getEntriesByTag(tag);
+---
+
+<BaseLayout title={`${tag} — Sempiterni Codex`} description={`Codex entries tagged “${tag}”.`}>
+  <section class="container page-header">
+    <Breadcrumbs crumbs={[{ label: "Tags", href: "/tags/" }, { label: tag }]} />
+    <h1>Tag: {tag}</h1>
+    <p>{entries.length} entries tagged with “{tag}”.</p>
+  </section>
+
+  <section class="container wiki-layout">
+    <CategoryNav />
+
+    <div class="wiki-main">
+      <div class="entry-list compact-list">
+        {entries.map((entry) => <EntryCard entry={entry} />)}
+      </div>
+    </div>
+  </section>
+</BaseLayout>

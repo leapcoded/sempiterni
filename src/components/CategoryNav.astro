@@ -1,0 +1,39 @@
+---
+import { getCategoryTree, categoryUrl, sectionUrl } from "../lib/entries";
+
+interface Props {
+  activeCategory?: string;
+  activeSection?: string;
+}
+
+const { activeCategory, activeSection } = Astro.props;
+const tree = getCategoryTree();
+---
+
+<nav class="category-nav panel" aria-label="Browse categories">
+  <p class="eyebrow">Browse</p>
+  <ul class="category-tree">
+    {tree.map((category) => (
+      <li class:list={["category-branch", { active: activeCategory === category.slug }]}>
+        <a class="category-link" href={categoryUrl(category)}>
+          <span>{category.name}</span>
+          <span class="count">{category.entryCount}</span>
+        </a>
+        <ul class="section-tree">
+          {category.sections.map((section) => (
+            <li class:list={[{ active: activeSection === section.slug && activeCategory === category.slug }]}>
+              <a href={sectionUrl(category, section)}>
+                <span>{section.name}</span>
+                <span class="count">{section.entries.length}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </li>
+    ))}
+  </ul>
+  <div class="category-nav-footer">
+    <a href="/browse/">A–Z index</a>
+    <a href="/tags/">All tags</a>
+  </div>
+</nav>

@@ -1,0 +1,56 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Breadcrumbs from "../../../components/Breadcrumbs.astro";
+import CategoryNav from "../../../components/CategoryNav.astro";
+import EntryCard from "../../../components/EntryCard.astro";
+import SearchPanel from "../../../components/SearchPanel.astro";
+import { getCategoryTree, sectionUrl } from "../../../lib/entries";
+
+export function getStaticPaths() {
+  return getCategoryTree().map((category) => ({
+    params: { category: category.slug },
+  }));
+}
+
+const { category: categorySlug } = Astro.params;
+const category = getCategoryTree().find((item) => item.slug === categorySlug);
+
+if (!category) {
+  throw new Error(`Missing category: ${categorySlug}`);
+}
+---
+
+<BaseLayout title={`${category.name} — Sempiterni Codex`} description={category.description}>
+  <section class="container page-header">
+    <Breadcrumbs crumbs={[{ label: category.name }]} />
+    <h1>{category.name}</h1>
+    <p>{category.description}</p>
+    <SearchPanel />
+  </section>
+
+  <section class="container wiki-layout">
+    <CategoryNav activeCategory={category.slug} />
+
+    <div class="wiki-main">
+      {category.sections.map((section) => (
+        <section class="panel section-block" id={section.slug}>
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">{section.entries.length} entries</p>
+              <h2><a href={sectionUrl(category, section)}>{section.name}</a></h2>
+            </div>
+            <a href={sectionUrl(category, section)}>View section →</a>
+          </div>
+          <div class="entry-list compact-list">
+            {section.entries.slice(0, 6).map((entry) => <EntryCard entry={entry} showCategory={false} />)}
+          </div>
+          {section.entries.length > 6 ? (
+            <p class="card-footer-link">
+              <a href={sectionUrl(category, section)}>+ {section.entries.length - 6} more in {section.name}</a>
+            </p>
+          ) : null}
+        </section>
+      ))}
+    </div>
+  </section>
+</BaseLayout>

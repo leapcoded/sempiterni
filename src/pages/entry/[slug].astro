@@ -1,6 +1,18 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getEntries, getEntry, getEntryContent, renderMarkdown } from "../../lib/entries";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import EntrySidebar from "../../components/EntrySidebar.astro";
+import {
+  getEntries,
+  getEntry,
+  getEntryContent,
+  getAdjacentEntries,
+  extractToc,
+  renderMarkdown,
+  categoryUrl,
+  sectionUrl,
+  tagUrl,
+} from "../../lib/entries";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -19,36 +31,53 @@ if (!entry) {
 
 const contentPath = path.join(process.cwd(), "src/content/entries", `${slug}.md`);
 const raw = fs.existsSync(contentPath) ? fs.readFileSync(contentPath, "utf8") : getEntryContent(slug!);
+const toc = extractToc(raw);
 const html = renderMarkdown(raw);
+const { prev, next } = getAdjacentEntries(entry);
 ---
 
 <BaseLayout title={`${entry.title} — Sempiterni Codex`} description={entry.excerpt}>
   <article class="entry-page container">
-    <header class="entry-header">
-      <p class="eyebrow">{entry.category} / {entry.section}</p>
-      <h1>{entry.title}</h1>
-      <div class="meta-row">
-        {entry.tags.map((tag) => (
-          <span class="relation-pill">{tag}</span>
-        ))}
+    <Breadcrumbs
+      crumbs={[
+        { label: entry.category, href: categoryUrl(entry.category) },
+        { label: entry.section, href: sectionUrl(entry.category, entry.section) },
+        { label: entry.title },
+      ]}
+    />
+
+    <div class="entry-layout">
+      <div class="entry-main">
+        <header class="entry-header">
+          <p class="eyebrow">{entry.category} / {entry.section}</p>
+          <h1>{entry.title}</h1>
+          {entry.excerpt ? <p class="entry-lead">{entry.excerpt}</p> : null}
+          <div class="tag-bar">
+            {entry.tags.map((tag) => (
+              <a class="tag-chip link-chip" href={tagUrl(tag)}>{tag}</a>
+            ))}
+          </div>
+        </header>
+
+        <div class="panel entry-body" set:html={html} />
+
+        <nav class="entry-nav panel" aria-label="Entry navigation">
+          {prev ? (
+            <a class="entry-nav-link prev" href={`/entry/${prev.slug}/`}>
+              <span>Previous</span>
+              <strong>{prev.title}</strong>
+            </a>
+          ) : <span />}
+          {next ? (
+            <a class="entry-nav-link next" href={`/entry/${next.slug}/`}>
+              <span>Next</span>
+              <strong>{next.title}</strong>
+            </a>
+          ) : <span />}
+        </nav>
       </div>
-      {entry.linkedRelations?.length ? (
-        <div class="relation-list">
-          {entry.linkedRelations.map((relation) => (
-            relation.slug ? (
-              <a class="relation-pill" href={`/entry/${relation.slug}/`}>{relation.label}</a>
-            ) : (
-              <span class="relation-pill muted">{relation.label}</span>
-            )
-          ))}
-        </div>
-      ) : null}
-    </header>
 
-    <div class="panel entry-body" set:html={html} />
-
-    <p style="margin-top: 1.5rem;">
-      <a href="/">← Back to codex</a>
-    </p>
+      <EntrySidebar entry={entry} toc={toc} />
+    </div>
   </article>
 </BaseLayout>

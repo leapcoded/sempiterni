@@ -1,0 +1,30 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import CategoryNav from "../components/CategoryNav.astro";
+import { getTags, tagUrl } from "../lib/entries";
+
+const tags = getTags();
+---
+
+<BaseLayout title="Tags — Sempiterni Codex" description="Browse Sempiterni codex entries by tag.">
+  <section class="container page-header">
+    <Breadcrumbs crumbs={[{ label: "Tags" }]} />
+    <h1>Tags</h1>
+    <p>Filter the codex by topic, faction, location, or entry type.</p>
+  </section>
+
+  <section class="container wiki-layout">
+    <CategoryNav />
+
+    <div class="wiki-main">
+      <div class="panel tag-directory">
+        <div class="tag-bar">
+          {tags.map((tag) => (
+            <a class="tag-chip link-chip" href={tagUrl(tag)}>{tag}</a>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
