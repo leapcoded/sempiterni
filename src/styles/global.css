@@ -734,6 +734,18 @@ a:hover {
   margin: 1.5rem 0;
 }
 
+.entry-body a {
+  color: var(--cyan);
+  text-decoration: underline;
+  text-decoration-color: rgba(93, 228, 255, 0.35);
+  text-underline-offset: 0.15em;
+}
+
+.entry-body a:hover {
+  color: white;
+  text-decoration-color: rgba(255, 255, 255, 0.5);
+}
+
 .entry-body em,
 .entry-body i {
   color: #f3d2a0;
