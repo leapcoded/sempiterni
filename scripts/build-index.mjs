@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { sanitizeReaderContent } from "./sanitize-content.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
@@ -128,6 +129,7 @@ function walkMarkdown(dir, base = loreDir) {
 
     const title = extractTitle(content, filename);
     const slug = slugify(filename);
+    const sanitized = sanitizeReaderContent(content);
     entries.push({
       slug,
       title,
@@ -135,9 +137,9 @@ function walkMarkdown(dir, base = loreDir) {
       section: relPath.split(path.sep).slice(1, -1).join(" / ") || "General",
       tags: inferTags(relPath, title),
       relations: extractRelations(content),
-      excerpt: extractExcerpt(content),
+      excerpt: extractExcerpt(sanitized),
       sourcePath: relPath,
-      content,
+      content: sanitized,
     });
   }
 
@@ -154,6 +156,7 @@ function splitGlossary(content) {
 
     const rawTitle = stripMarkdown(heading[1]).replace(/\s*\(see also:[^)]+\)\s*/i, "").trim();
     const slug = `glossary-${slugify(rawTitle)}`;
+    const sanitized = sanitizeReaderContent(part.trim());
     entries.push({
       slug,
       title: rawTitle,
@@ -161,9 +164,9 @@ function splitGlossary(content) {
       section: "Terms",
       tags: ["glossary", "term"],
       relations: extractRelations(part),
-      excerpt: extractExcerpt(part),
+      excerpt: extractExcerpt(sanitized),
       sourcePath: "glossary.md",
-      content: part.trim(),
+      content: sanitized,
     });
   }
 

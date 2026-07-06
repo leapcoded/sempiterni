@@ -2,6 +2,7 @@ import entriesData from "../data/entries.json";
 import fs from "node:fs";
 import path from "node:path";
 import { marked } from "marked";
+import { autoLinkMarkdown } from "./auto-link";
 
 export type EntryMeta = {
   slug: string;
@@ -210,8 +211,9 @@ function addHeadingIds(html: string) {
   });
 }
 
-export function renderMarkdown(content: string) {
-  const html = marked.parse(content, { async: false }) as string;
+export function renderMarkdown(content: string, slug?: string) {
+  const linked = autoLinkMarkdown(content, manifest.entries, slug);
+  const html = marked.parse(linked, { async: false }) as string;
   return addHeadingIds(html);
 }
 
