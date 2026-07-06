@@ -1,0 +1,136 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getEntries, getTags } from "../lib/entries";
+
+const entries = getEntries();
+const tags = getTags();
+---
+
+<BaseLayout title="Sempiterni Codex">
+  <section class="hero container">
+    <p class="eyebrow">Interactive Dictionary</p>
+    <h1>Navigate the Sempiterni universe.</h1>
+    <p>
+      A reader-facing codex of factions, systems, characters, and terms from the world of Sempiterni.
+      Search entries, filter by tags, and follow relation markers between concepts.
+    </p>
+  </section>
+
+  <section class="container layout-grid">
+    <div>
+      <div class="panel controls">
+        <input
+          id="search"
+          class="search-input"
+          type="search"
+          placeholder="Search the codex…"
+          autocomplete="off"
+        />
+        <div class="tag-bar" id="tag-bar">
+          <button class="tag-chip active" data-tag="all" type="button">all</button>
+          {tags.map((tag) => (
+            <button class="tag-chip" data-tag={tag} type="button">{tag}</button>
+          ))}
+        </div>
+      </div>
+
+      <div class="panel entry-list" id="entry-list">
+        {entries.map((entry) => (
+          <a
+            class="entry-card"
+            href={`/entry/${entry.slug}/`}
+            data-slug={entry.slug}
+            data-title={entry.title.toLowerCase()}
+            data-tags={entry.tags.join(" ")}
+            data-excerpt={entry.excerpt.toLowerCase()}
+          >
+            <div class="entry-meta">
+              <span>{entry.category}</span>
+              <span>•</span>
+              <span>{entry.section}</span>
+            </div>
+            <h2>{entry.title}</h2>
+            <p>{entry.excerpt}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <aside class="panel preview-panel" id="preview-panel">
+      <p class="preview-empty">Hover an entry to preview relation markers, or open any card for the full article.</p>
+    </aside>
+  </section>
+
+  <script define:vars={{ entries }}>
+    const search = document.getElementById("search");
+    const tagBar = document.getElementById("tag-bar");
+    const entryList = document.getElementById("entry-list");
+    const previewPanel = document.getElementById("preview-panel");
+    const cards = [...entryList.querySelectorAll(".entry-card")];
+
+    let activeTag = "all";
+
+    const entryMap = new Map(entries.map((entry) => [entry.slug, entry]));
+
+    function renderPreview(slug) {
+      const entry = entryMap.get(slug);
+      if (!entry) return;
+
+      const relations = (entry.linkedRelations || [])
+        .map((relation) => {
+          if (relation.slug) {
+            return `<a class="relation-pill" href="/entry/${relation.slug}/">${relation.label}</a>`;
+          }
+          return `<span class="relation-pill muted">${relation.label}</span>`;
+        })
+        .join("");
+
+      previewPanel.innerHTML = `
+        <p class="eyebrow">Relation markers</p>
+        <h2>${entry.title}</h2>
+        <div class="meta-row">
+          <span>${entry.category}</span>
+          <span>•</span>
+          <span>${entry.section}</span>
+        </div>
+        <p>${entry.excerpt}</p>
+        <div class="tag-bar" style="margin-top: 1rem;">
+          ${entry.tags.map((tag) => `<span class="relation-pill">${tag}</span>`).join("")}
+        </div>
+        ${relations ? `<div class="relation-list">${relations}</div>` : ""}
+        <p style="margin-top: 1rem;"><a href="/entry/${entry.slug}/">Open full entry →</a></p>
+      `;
+    }
+
+    function applyFilters() {
+      const query = search.value.trim().toLowerCase();
+
+      cards.forEach((card) => {
+        const tags = card.dataset.tags || "";
+        const matchesTag = activeTag === "all" || tags.split(" ").includes(activeTag);
+        const haystack = `${card.dataset.title} ${card.dataset.excerpt} ${tags}`;
+        const matchesQuery = !query || haystack.includes(query);
+        card.style.display = matchesTag && matchesQuery ? "block" : "none";
+      });
+    }
+
+    search.addEventListener("input", applyFilters);
+
+    tagBar.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-tag]");
+      if (!button) return;
+      activeTag = button.dataset.tag;
+      tagBar.querySelectorAll(".tag-chip").forEach((chip) => chip.classList.remove("active"));
+      button.classList.add("active");
+      applyFilters();
+    });
+
+    cards.forEach((card) => {
+      card.addEventListener("mouseenter", () => {
+        cards.forEach((item) => item.classList.remove("active"));
+        card.classList.add("active");
+        renderPreview(card.dataset.slug);
+      });
+    });
+  </script>
+</BaseLayout>

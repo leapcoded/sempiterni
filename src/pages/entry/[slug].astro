@@ -1,0 +1,54 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getEntries, getEntry, getEntryContent, renderMarkdown } from "../../lib/entries";
+import fs from "node:fs";
+import path from "node:path";
+
+export function getStaticPaths() {
+  return getEntries().map((entry) => ({
+    params: { slug: entry.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+const entry = getEntry(slug!);
+
+if (!entry) {
+  throw new Error(`Missing entry for slug: ${slug}`);
+}
+
+const contentPath = path.join(process.cwd(), "src/content/entries", `${slug}.md`);
+const raw = fs.existsSync(contentPath) ? fs.readFileSync(contentPath, "utf8") : getEntryContent(slug!);
+const html = renderMarkdown(raw);
+---
+
+<BaseLayout title={`${entry.title} — Sempiterni Codex`} description={entry.excerpt}>
+  <article class="entry-page container">
+    <header class="entry-header">
+      <p class="eyebrow">{entry.category} / {entry.section}</p>
+      <h1>{entry.title}</h1>
+      <div class="meta-row">
+        {entry.tags.map((tag) => (
+          <span class="relation-pill">{tag}</span>
+        ))}
+      </div>
+      {entry.linkedRelations?.length ? (
+        <div class="relation-list">
+          {entry.linkedRelations.map((relation) => (
+            relation.slug ? (
+              <a class="relation-pill" href={`/entry/${relation.slug}/`}>{relation.label}</a>
+            ) : (
+              <span class="relation-pill muted">{relation.label}</span>
+            )
+          ))}
+        </div>
+      ) : null}
+    </header>
+
+    <div class="panel entry-body" set:html={html} />
+
+    <p style="margin-top: 1.5rem;">
+      <a href="/">← Back to codex</a>
+    </p>
+  </article>
+</BaseLayout>
