@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { sanitizeReaderContent, stripGlossaryHeading } from "./sanitize-content.mjs";
+import { sanitizeReaderContent, stripGlossaryHeading, decodeEntities } from "./sanitize-content.mjs";
 
 const linkAliases = JSON.parse(
   fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../src/data/link-aliases.json"), "utf8"),
@@ -12,6 +12,7 @@ const root = path.join(__dirname, "..");
 const loreDir = path.join(root, "lore");
 const outFile = path.join(root, "src/data/entries.json");
 const redirectsFile = path.join(root, "src/data/redirects.json");
+const searchIndexFile = path.join(root, "src/data/search-index.json");
 
 const CATEGORY_TAGS = {
   "World & Lore": "world",
@@ -65,6 +66,15 @@ function extractExcerpt(content) {
   return "";
 }
 
+function cleanRelationLabel(label) {
+  return stripMarkdown(label)
+    .replace(/\)\*+$/g, "")
+    .replace(/^\*+/, "")
+    .replace(/\\\[(deprecated|see[^\]]+)\\\]/gi, " $1 ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function extractRelations(content) {
   const relations = new Set();
   const patterns = [
@@ -80,9 +90,9 @@ function extractRelations(content) {
     while ((match = pattern.exec(content)) !== null) {
       match[1]
         .split(/[;,]/)
-        .map((part) => stripMarkdown(part))
+        .map((part) => cleanRelationLabel(part))
         .forEach((part) => {
-          if (part.length > 2 && part.length < 80) relations.add(part);
+          if (part.length > 2 && part.length < 80 && !/^\)*$/.test(part)) relations.add(part);
         });
     }
   }
@@ -159,7 +169,9 @@ function splitGlossary(content) {
     const heading = part.match(/^###\s+(.+)$/m);
     if (!heading) continue;
 
-    const rawTitle = stripMarkdown(heading[1]).replace(/\s*\(see also:[^)]+\)\s*/i, "").trim();
+    const rawTitle = decodeEntities(stripMarkdown(heading[1]))
+      .replace(/\s*\(see also:[^)]+\)\s*/i, "")
+      .trim();
     const slug = `glossary-${slugify(rawTitle)}`;
     const sanitized = sanitizeReaderContent(part.trim());
     const body = stripGlossaryHeading(sanitized);
@@ -195,6 +207,10 @@ function resolveAliasSlug(label, entries) {
 }
 
 function findCanonicalSlug(entry, entries) {
+  if (/deprecated/i.test(entry.title)) {
+    return resolveAliasSlug("Debris Field", entries) || "glossary-debris-field";
+  }
+
   const seeMatch = entry.content.trim().match(/^See \*([^*]+)\*/i);
   if (seeMatch) {
     return resolveAliasSlug(seeMatch[1].trim(), entries);
@@ -204,6 +220,8 @@ function findCanonicalSlug(entry, entries) {
     const base = entry.slug.slice("glossary-".length);
     const full = entries.find((item) => item.slug === base && !item.slug.startsWith("glossary-"));
     if (full) return full.slug;
+    const theArticle = entries.find((item) => item.slug === `the-${base}` && !item.slug.startsWith("glossary-"));
+    if (theArticle) return theArticle.slug;
   }
 
   if (entry.slug === "glossary-cassan-vale") return "cassan-vale";
@@ -215,7 +233,99 @@ function isStubEntry(entry, canonicalSlug) {
   if (!canonicalSlug || canonicalSlug === entry.slug) return false;
   const words = entry.content.trim().split(/\s+/).filter(Boolean).length;
   if (/^See \*/i.test(entry.content.trim())) return true;
-  return entry.tags.includes("glossary") && words < 50;
+  if (/deprecated/i.test(entry.title)) return true;
+  return entry.tags.includes("glossary") && words < 80;
+}
+
+function inferEntryType(entry) {
+  if (/deprecated/i.test(entry.title)) return "deprecated";
+  if (entry.category === "Characters") return "character";
+  if (entry.category === "Glossary") return entry.isStub ? "glossary" : "term";
+  if (entry.section === "Locations & Sensory Detail") return "location";
+  if (entry.slug.endsWith("-branch") && entry.tags.includes("branch")) return "branch";
+  if (entry.section === "Core Systems") return "system";
+  if (entry.section === "History & Timeline") return "history";
+  if (entry.section === "The Convergence & Cosmology") return "cosmology";
+  if (entry.section === "Factions & Power Structures") return "faction";
+  return "article";
+}
+
+function plainText(content) {
+  return content
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildSearchIndex(entries) {
+  return entries.map((entry) => ({
+    slug: entry.slug,
+    title: entry.title,
+    excerpt: entry.excerpt,
+    category: entry.category,
+    section: entry.section,
+    tags: entry.tags,
+    entryType: entry.entryType,
+    body: plainText(entry.content).slice(0, 4000),
+  }));
+}
+
+function runLint(entries) {
+  const issues = [];
+  const titles = new Map();
+
+  for (const entry of entries) {
+    const titleKey = entry.title.toLowerCase();
+    if (titles.has(titleKey)) {
+      issues.push({ kind: "duplicate-title", slug: entry.slug, detail: titles.get(titleKey) });
+    } else {
+      titles.set(titleKey, entry.slug);
+    }
+
+    if (entry.slug.includes("andamp")) {
+      issues.push({ kind: "slug-encoding", slug: entry.slug, detail: "slug contains andamp — decode entities in title" });
+    }
+
+    for (const relation of entry.linkedRelations || []) {
+      if (!relation.slug) {
+        issues.push({ kind: "unresolved-relation", slug: entry.slug, detail: relation.label });
+      }
+    }
+
+    const authorPatterns = [
+      /Open Follow-Ups/i,
+      /Five Arks Thread/i,
+      /Author-level only/i,
+      /book-one-chapter-breakdown/i,
+      /Series Spine/i,
+    ];
+    for (const pattern of authorPatterns) {
+      if (pattern.test(entry.content)) {
+        issues.push({ kind: "author-leak", slug: entry.slug, detail: pattern.source });
+      }
+    }
+
+    const words = entry.content.trim().split(/\s+/).filter(Boolean).length;
+    if (words > 0 && words < 25 && !entry.isStub && entry.category === "Glossary") {
+      issues.push({ kind: "thin-glossary", slug: entry.slug, detail: `${words} words` });
+    }
+  }
+
+  if (issues.length) {
+    console.warn(`\nLint: ${issues.length} issue(s):`);
+    for (const issue of issues.slice(0, 30)) {
+      console.warn(`  [${issue.kind}] ${issue.slug}: ${issue.detail}`);
+    }
+    if (issues.length > 30) console.warn(`  … and ${issues.length - 30} more`);
+  } else {
+    console.log("Lint: no issues found.");
+  }
+
+  return issues;
 }
 
 function annotateStubs(entries) {
@@ -297,8 +407,23 @@ for (const entry of entries) {
   canonicalEntries.push(entry);
 }
 
+const LEGACY_SLUG_REDIRECTS = {
+  "glossary-arc-autonomous-routing-andamp-control": "glossary-arc-autonomous-routing-and-control",
+  "glossary-species-andamp-physiology": "glossary-species-and-physiology",
+};
+
+for (const [from, to] of Object.entries(LEGACY_SLUG_REDIRECTS)) {
+  if (canonicalEntries.some((entry) => entry.slug === to)) {
+    redirects[from] = to;
+  }
+}
+
 linkRelations(canonicalEntries);
 annotateStubs(canonicalEntries);
+
+for (const entry of canonicalEntries) {
+  entry.entryType = inferEntryType(entry);
+}
 
 canonicalEntries.sort((a, b) => a.title.localeCompare(b.title));
 
@@ -316,6 +441,7 @@ const manifest = {
 fs.mkdirSync(path.dirname(outFile), { recursive: true });
 fs.writeFileSync(outFile, JSON.stringify(manifest, null, 2));
 fs.writeFileSync(redirectsFile, JSON.stringify(redirects, null, 2));
+fs.writeFileSync(searchIndexFile, JSON.stringify(buildSearchIndex(canonicalEntries), null, 2));
 
 const contentDir = path.join(root, "src/content/entries");
 fs.rmSync(contentDir, { recursive: true, force: true });
@@ -328,3 +454,5 @@ for (const entry of canonicalEntries) {
 console.log(
   `Indexed ${canonicalEntries.length} entries with ${manifest.tags.length} tags (${Object.keys(redirects).length} redirects).`,
 );
+
+runLint(canonicalEntries);

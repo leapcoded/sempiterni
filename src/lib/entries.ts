@@ -4,6 +4,7 @@ import path from "node:path";
 import { marked } from "marked";
 import { autoLinkMarkdown } from "./auto-link";
 import { resolveAliasSlug } from "./link-aliases";
+import { getSectionReadingOrder } from "./reading-orders";
 
 export type EntryMeta = {
   slug: string;
@@ -17,6 +18,7 @@ export type EntryMeta = {
   sourcePath: string;
   canonicalSlug?: string | null;
   isStub?: boolean;
+  entryType?: string;
 };
 
 export type EntriesManifest = {
@@ -172,15 +174,21 @@ export function getRelatedEntries(entry: EntryMeta, limit = 8) {
 }
 
 export function getAdjacentEntries(entry: EntryMeta) {
-  const siblings = manifest.entries
-    .filter((item) => item.category === entry.category && item.section === entry.section)
-    .sort((a, b) => a.title.localeCompare(b.title));
+  const sectionKey = `${entry.category}|${entry.section}`;
+  const curated = getSectionReadingOrder(entry.category, entry.section);
+
+  const siblings = curated
+    ? curated.map((slug) => getEntry(slug)).filter((item): item is EntryMeta => Boolean(item))
+    : manifest.entries
+        .filter((item) => item.category === entry.category && item.section === entry.section)
+        .sort((a, b) => a.title.localeCompare(b.title));
 
   const index = siblings.findIndex((item) => item.slug === entry.slug);
 
   return {
     prev: index > 0 ? siblings[index - 1] : null,
     next: index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : null,
+    sectionKey,
   };
 }
 

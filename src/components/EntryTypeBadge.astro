@@ -1,0 +1,12 @@
+---
+import type { EntryMeta } from "../lib/entries";
+import { getEntryTypeClass, getEntryTypeLabel } from "../lib/entry-types";
+
+interface Props {
+  entry: EntryMeta;
+}
+
+const { entry } = Astro.props;
+---
+
+<span class={`entry-type-badge ${getEntryTypeClass(entry)}`}>{getEntryTypeLabel(entry)}</span>

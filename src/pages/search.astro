@@ -1,0 +1,19 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SearchPanel from "../components/SearchPanel.astro";
+---
+
+<BaseLayout
+  title="Search — Sempiterni Codex"
+  description="Search all Sempiterni codex entries by title, tag, and full article text."
+  canonicalPath="/search/"
+>
+  <section class="container page-stack">
+    <header class="page-header">
+      <p class="eyebrow">Codex search</p>
+      <h1>Search the codex</h1>
+      <p>Full-text search across titles, excerpts, tags, and article bodies.</p>
+    </header>
+    <SearchPanel />
+  </section>
+</BaseLayout>

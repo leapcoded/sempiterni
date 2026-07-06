@@ -1,12 +1,24 @@
 ---
 import "../styles/global.css";
+import HeaderSearch from "../components/HeaderSearch.astro";
 
 interface Props {
   title?: string;
   description?: string;
+  canonicalPath?: string;
+  ogType?: string;
 }
 
-const { title = "Sempiterni Codex", description = "An interactive dictionary of the Sempiterni universe." } = Astro.props;
+const {
+  title = "Sempiterni Codex",
+  description = "An interactive dictionary of the Sempiterni universe.",
+  canonicalPath,
+  ogType = "website",
+} = Astro.props;
+
+const site = Astro.site?.toString().replace(/\/$/, "") || "https://sempiterni.lilpossum.xyz";
+const canonicalUrl = canonicalPath ? new URL(canonicalPath, site).href : Astro.url.href;
+const ogImage = new URL("/og-card.svg", site).href;
 ---
 
 <!doctype html>
@@ -16,6 +28,18 @@ const { title = "Sempiterni Codex", description = "An interactive dictionary of 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:site_name" content="Sempiterni Codex" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
     <title>{title}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -34,10 +58,12 @@ const { title = "Sempiterni Codex", description = "An interactive dictionary of 
             <small>Interstellar Codex</small>
           </span>
         </a>
+        <HeaderSearch />
         <nav class="site-nav">
           <a href="/">Home</a>
           <a href="/browse/">A–Z</a>
           <a href="/tags/">Tags</a>
+          <a href="/search/">Search</a>
           <a href="https://lilpossum.xyz">lilpossum.xyz</a>
         </nav>
       </div>

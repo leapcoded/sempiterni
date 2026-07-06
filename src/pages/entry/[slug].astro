@@ -3,6 +3,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import Breadcrumbs from "../../components/Breadcrumbs.astro";
 import EntrySidebar from "../../components/EntrySidebar.astro";
 import EntryStubBanner from "../../components/EntryStubBanner.astro";
+import EntryInfobox from "../../components/EntryInfobox.astro";
+import EntryTypeBadge from "../../components/EntryTypeBadge.astro";
+import MobileToc from "../../components/MobileToc.astro";
 import {
   getEntries,
   getEntry,
@@ -15,6 +18,7 @@ import {
   sectionUrl,
   tagUrl,
 } from "../../lib/entries";
+import { getInfobox } from "../../lib/infobox";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -37,9 +41,15 @@ const toc = extractToc(raw);
 const html = renderMarkdown(raw, slug!);
 const { prev, next } = getAdjacentEntries(entry);
 const stub = getStubInfo(entry, raw);
+const infobox = getInfobox(entry, raw);
 ---
 
-<BaseLayout title={`${entry.title} — Sempiterni Codex`} description={entry.excerpt}>
+<BaseLayout
+  title={`${entry.title} — Sempiterni Codex`}
+  description={entry.excerpt}
+  canonicalPath={`/entry/${entry.slug}/`}
+  ogType="article"
+>
   <article class="entry-page container">
     <Breadcrumbs
       crumbs={[
@@ -52,7 +62,10 @@ const stub = getStubInfo(entry, raw);
     <div class="entry-layout">
       <div class="entry-main">
         <header class="entry-header">
-          <p class="eyebrow">{entry.category} / {entry.section}</p>
+          <div class="entry-header-top">
+            <p class="eyebrow">{entry.category} / {entry.section}</p>
+            <EntryTypeBadge entry={entry} />
+          </div>
           <h1>{entry.title}</h1>
           {entry.excerpt ? <p class="entry-lead">{entry.excerpt}</p> : null}
           <div class="tag-bar">
@@ -62,7 +75,9 @@ const stub = getStubInfo(entry, raw);
           </div>
         </header>
 
+        {infobox ? <EntryInfobox infobox={infobox} /> : null}
         {stub ? <EntryStubBanner stub={stub} /> : null}
+        <MobileToc toc={toc} />
 
         <div class="panel entry-body" set:html={html} />
 

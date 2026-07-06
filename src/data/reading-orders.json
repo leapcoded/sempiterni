@@ -1,0 +1,80 @@
+{
+  "paths": [
+    {
+      "id": "new-to-arbour",
+      "title": "New to Arbour",
+      "description": "How the city is organised — branches, politics, and the systems that keep it running.",
+      "slugs": [
+        "arbour-branches-overview",
+        "arbour-political-systems",
+        "arbour-power",
+        "arbour-economy-and-enforcement",
+        "world-systems"
+      ]
+    },
+    {
+      "id": "the-crash",
+      "title": "The Crash",
+      "description": "From Earth's collapse to ARBOUR|05's arrival and the founding of Cordis.",
+      "slugs": [
+        "what-happened-on-earth",
+        "the-crash",
+        "what-arbour-05-knew",
+        "founding-generations",
+        "wayfarer-divergence"
+      ]
+    },
+    {
+      "id": "convergence",
+      "title": "The Convergence",
+      "description": "Cosmology, Aetheris exposure, and what the Installations actually are.",
+      "slugs": [
+        "the-convergence-aetheris",
+        "aetheris-exposure-geography",
+        "the-installations",
+        "the-penumbrans",
+        "distributed-knowledge"
+      ]
+    },
+    {
+      "id": "protagonists",
+      "title": "Main cast",
+      "description": "The people at the centre of Book One.",
+      "slugs": [
+        "aran-sunderwood",
+        "wren-emberlain",
+        "atlas-faelan",
+        "cassan-vale"
+      ]
+    }
+  ],
+  "sections": {
+    "World & Lore|History & Timeline": [
+      "what-happened-on-earth",
+      "the-crash",
+      "what-arbour-05-knew",
+      "founding-generations",
+      "wayfarer-divergence",
+      "arc-degradation-timeline"
+    ],
+    "World & Lore|The Convergence & Cosmology": [
+      "the-convergence-aetheris",
+      "aetheris-exposure-geography",
+      "the-penumbrans",
+      "the-installations",
+      "badlands-ecology",
+      "distributed-knowledge"
+    ],
+    "World & Lore|Factions & Power Structures": [
+      "arbour-branches-overview",
+      "inter-branch-relationships",
+      "azure-branch",
+      "obsidian-branch",
+      "scarlet-branch",
+      "golden-branch",
+      "verdant-branch",
+      "violet-branch",
+      "the-margin"
+    ]
+  }
+}
