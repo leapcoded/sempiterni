@@ -1,0 +1,54 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Breadcrumbs from "../../../components/Breadcrumbs.astro";
+import CategoryNav from "../../../components/CategoryNav.astro";
+import EntryCard from "../../../components/EntryCard.astro";
+import SearchPanel from "../../../components/SearchPanel.astro";
+import { getCategoryTree, getSection } from "../../../lib/entries";
+
+export function getStaticPaths() {
+  return getCategoryTree().flatMap((category) =>
+    category.sections.map((section) => ({
+      params: { category: category.slug, section: section.slug },
+    })),
+  );
+}
+
+const { category: categorySlug, section: sectionSlug } = Astro.params;
+const result = getSection(categorySlug!, sectionSlug!);
+
+if (!result) {
+  throw new Error(`Missing section: ${categorySlug}/${sectionSlug}`);
+}
+
+const { category, section } = result;
+---
+
+<BaseLayout
+  title={`${section.name} — ${category.name} — Sempiterni Codex`}
+  description={`${section.entries.length} codex entries in ${section.name}.`}
+>
+  <section class="container page-header">
+    <Breadcrumbs
+      crumbs={[
+        { label: category.name, href: `/category/${category.slug}/` },
+        { label: section.name },
+      ]}
+    />
+    <h1>{section.name}</h1>
+    <p>
+      {section.entries.length} entries in <a href={`/category/${category.slug}/`}>{category.name}</a>.
+    </p>
+    <SearchPanel />
+  </section>
+
+  <section class="container wiki-layout">
+    <CategoryNav activeCategory={category.slug} activeSection={section.slug} />
+
+    <div class="wiki-main">
+      <div class="entry-list compact-list">
+        {section.entries.map((entry) => <EntryCard entry={entry} showCategory={false} />)}
+      </div>
+    </div>
+  </section>
+</BaseLayout>

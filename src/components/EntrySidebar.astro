@@ -1,0 +1,76 @@
+---
+import type { EntryMeta, TocItem } from "../lib/entries";
+import { getBacklinks, getRelatedEntries, tagUrl } from "../lib/entries";
+
+interface Props {
+  entry: EntryMeta;
+  toc: TocItem[];
+}
+
+const { entry, toc } = Astro.props;
+const backlinks = getBacklinks(entry.slug);
+const related = getRelatedEntries(entry).filter((item) => !backlinks.some((link) => link.slug === item.slug));
+---
+
+<aside class="entry-sidebar">
+  {toc.length > 0 ? (
+    <section class="panel sidebar-block">
+      <p class="eyebrow">On this page</p>
+      <nav class="toc" aria-label="Table of contents">
+        <ul>
+          {toc.map((item) => (
+            <li class={`toc-level-${item.level}`}>
+              <a href={`#${item.id}`}>{item.text}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </section>
+  ) : null}
+
+  <section class="panel sidebar-block">
+    <p class="eyebrow">Tags</p>
+    <div class="tag-bar">
+      {entry.tags.map((tag) => (
+        <a class="tag-chip link-chip" href={tagUrl(tag)}>{tag}</a>
+      ))}
+    </div>
+  </section>
+
+  {entry.linkedRelations?.length ? (
+    <section class="panel sidebar-block">
+      <p class="eyebrow">See also</p>
+      <div class="sidebar-links">
+        {entry.linkedRelations.map((relation) => (
+          relation.slug ? (
+            <a href={`/entry/${relation.slug}/`}>{relation.label}</a>
+          ) : (
+            <span class="muted">{relation.label}</span>
+          )
+        ))}
+      </div>
+    </section>
+  ) : null}
+
+  {backlinks.length > 0 ? (
+    <section class="panel sidebar-block">
+      <p class="eyebrow">Linked from</p>
+      <div class="sidebar-links">
+        {backlinks.map((backlink) => (
+          <a href={`/entry/${backlink.slug}/`}>{backlink.title}</a>
+        ))}
+      </div>
+    </section>
+  ) : null}
+
+  {related.length > 0 ? (
+    <section class="panel sidebar-block">
+      <p class="eyebrow">Related entries</p>
+      <div class="sidebar-links">
+        {related.map((item) => (
+          <a href={`/entry/${item.slug}/`}>{item.title}</a>
+        ))}
+      </div>
+    </section>
+  ) : null}
+</aside>

@@ -1,0 +1,67 @@
+---
+import { getEntries } from "../lib/entries";
+
+const entries = getEntries();
+---
+
+<div class="panel controls search-panel">
+  <label class="search-label" for="codex-search">Search the codex</label>
+  <input
+    id="codex-search"
+    class="search-input"
+    type="search"
+    placeholder="Search titles, excerpts, and tags…"
+    autocomplete="off"
+  />
+  <div class="search-results panel" id="search-results" hidden></div>
+</div>
+
+<script define:vars={{ entries }}>
+  const input = document.getElementById("codex-search");
+  const results = document.getElementById("search-results");
+
+  function renderResults(query) {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) {
+      results.hidden = true;
+      results.innerHTML = "";
+      return;
+    }
+
+    const matches = entries
+      .filter((entry) => {
+        const haystack = `${entry.title} ${entry.excerpt} ${entry.tags.join(" ")} ${entry.category} ${entry.section}`.toLowerCase();
+        return haystack.includes(normalized);
+      })
+      .slice(0, 12);
+
+    if (!matches.length) {
+      results.hidden = false;
+      results.innerHTML = `<p class="search-empty">No entries match “${query}”.</p>`;
+      return;
+    }
+
+    results.hidden = false;
+    results.innerHTML = matches
+      .map(
+        (entry) => `
+          <a class="search-result" href="/entry/${entry.slug}/">
+            <strong>${entry.title}</strong>
+            <span>${entry.category} · ${entry.section}</span>
+            <p>${entry.excerpt}</p>
+          </a>
+        `,
+      )
+      .join("");
+  }
+
+  input?.addEventListener("input", () => renderResults(input.value));
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".search-panel")) {
+      results.hidden = true;
+    }
+  });
+  input?.addEventListener("focus", () => {
+    if (input.value.trim()) renderResults(input.value);
+  });
+</script>

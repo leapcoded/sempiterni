@@ -1,0 +1,55 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import CategoryNav from "../components/CategoryNav.astro";
+import EntryCard from "../components/EntryCard.astro";
+import SearchPanel from "../components/SearchPanel.astro";
+import { getEntries, manifest } from "../lib/entries";
+
+const entries = getEntries();
+const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const grouped = new Map<string, typeof entries>();
+
+for (const letter of letters) grouped.set(letter, []);
+
+for (const entry of entries) {
+  const letter = entry.title[0]?.toUpperCase() || "#";
+  if (!grouped.has(letter)) grouped.set(letter, []);
+  grouped.get(letter)!.push(entry);
+}
+---
+
+<BaseLayout title="A–Z Index — Sempiterni Codex" description="Alphabetical index of all Sempiterni codex entries.">
+  <section class="container page-header">
+    <Breadcrumbs crumbs={[{ label: "A–Z Index" }]} />
+    <h1>A–Z Index</h1>
+    <p>All {manifest.entryCount} codex entries in alphabetical order.</p>
+    <SearchPanel />
+  </section>
+
+  <section class="container wiki-layout">
+    <CategoryNav />
+
+    <div class="wiki-main">
+      <nav class="alpha-jump panel" aria-label="Jump to letter">
+        {letters.map((letter) => (
+          <a href={`#letter-${letter.toLowerCase()}`} class:list={[{ disabled: !grouped.get(letter)?.length }]}>{letter}</a>
+        ))}
+      </nav>
+
+      {letters.map((letter) => {
+        const letterEntries = grouped.get(letter) || [];
+        if (!letterEntries.length) return null;
+
+        return (
+          <section class="alpha-section" id={`letter-${letter.toLowerCase()}`}>
+            <h2 class="alpha-heading">{letter}</h2>
+            <div class="entry-list compact-list">
+              {letterEntries.map((entry) => <EntryCard entry={entry} />)}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  </section>
+</BaseLayout>
