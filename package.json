@@ -10,10 +10,12 @@
     "dev": "astro dev",
     "prebuild": "node scripts/build-index.mjs",
     "build": "astro build",
+    "lint:codex": "node scripts/build-index.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.7.3",
     "astro": "^7.0.6",
     "gray-matter": "^4.0.3",
     "marked": "^18.0.5"

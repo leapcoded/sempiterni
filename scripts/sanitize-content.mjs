@@ -50,10 +50,30 @@ function stripAuthorMetadata(text) {
     .replace(/\*\*Author-level only[\s\S]*?(?=\n\n|$)/gi, "")
     .replace(/\s*per \*The Five Arks — Series Spine\*\./gi, "")
     .replace(/\s*Carries Five Arks Thread \d+[^.]*\./gi, "")
+    .replace(/\*\*The eventual Five Arks Thread \d+[^*]+\*\*/gi, "")
+    .replace(/Five Arks Thread \d+[^.]*\./gi, "")
+    .replace(/See \*book-one-chapter-breakdown\.md\*[^.]*\./gi, "")
+    .replace(/See \*book-one-chapter-breakdown\.md\*/gi, "")
+    .replace(/\*book-one-chapter-breakdown\.md\*/gi, "")
     .replace(/flagged for drafting\.?/gi, "")
     .replace(/\s*Full documents?:[^.\n]+(?:\.[^.\n]+)?\.?/gi, "")
     .replace(/\s*Full document:[^.\n]+\./gi, "")
     .replace(/\*Note:[^*]+\*/gi, "");
+}
+
+function stripEditorialMarkers(text) {
+  return text
+    .replace(/\*\*Timeline, locked:\*\*/gi, "**Timeline:**")
+    .replace(/\*\*The crisis, locked:\*\*/gi, "**The crisis:**")
+    .replace(/\*\*([^*]+), locked:\*\*/gi, "**$1:**")
+    .replace(/to be established in a dedicated naming pass/gi, "not yet named in official records")
+    .replace(/to be established during the Branch deep-dives[^.]*\./gi, "varies by infraction category and prior posting history.")
+    .replace(/to be established when[^.]*\./gi, "")
+    .replace(/are to be established[^.]*\./gi, "")
+    .replace(/is to be established[^.]*\./gi, "")
+    .replace(/left deliberately, rather than left as a generic gesture/gi, "deliberately")
+    .replace(/when those regions are developed\./gi, "in regions not yet documented here.")
+    .replace(/unnamed for now —[^.]*\./gi, "not yet named in the record.");
 }
 
 function unwrapItalicParagraphs(text) {
@@ -80,6 +100,7 @@ export function sanitizeReaderContent(content) {
   text = text.replace(/^\*A note on [^*]+\*\s*\n*/im, "");
 
   text = stripAuthorMetadata(text);
+  text = stripEditorialMarkers(text);
 
   text = text.replace(/\s*\*Source:[^*]+\*/gi, "");
   text = text.replace(/\s*\\\*Source:[^\\]+\\\*/gi, "");

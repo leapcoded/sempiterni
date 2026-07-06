@@ -4,8 +4,10 @@ import CategoryNav from "../components/CategoryNav.astro";
 import EntryCard from "../components/EntryCard.astro";
 import SearchPanel from "../components/SearchPanel.astro";
 import { getCategoryTree, categoryUrl, sectionUrl, manifest } from "../lib/entries";
+import { getReadingPaths } from "../lib/reading-orders";
 
 const tree = getCategoryTree();
+const readingPaths = getReadingPaths();
 ---
 
 <BaseLayout title="Sempiterni Codex">
@@ -48,6 +50,28 @@ const tree = getCategoryTree();
             </p>
           </article>
         ))}
+      </section>
+
+      <section class="panel recent-block">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Reading paths</p>
+            <h2>Curated trails</h2>
+          </div>
+        </div>
+        <div class="reading-path-grid">
+          {readingPaths.map((path) => (
+            <article class="reading-path-card">
+              <h3>{path.title}</h3>
+              <p>{path.description}</p>
+              <ol class="reading-path-list">
+                {path.entries.map((item) => (
+                  <li><a href={`/entry/${item.slug}/`}>{item.title}</a></li>
+                ))}
+              </ol>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section class="panel recent-block">

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Sempiterni Codex">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070b12"/>
+      <stop offset="100%" stop-color="#101a2b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="180" cy="120" r="220" fill="#5de4ff" opacity="0.08"/>
+  <circle cx="1020" cy="520" r="260" fill="#b48cff" opacity="0.1"/>
+  <text x="96" y="280" fill="#5de4ff" font-family="monospace" font-size="28" letter-spacing="0.3em">SEMPITERNI</text>
+  <text x="96" y="360" fill="#ffffff" font-family="system-ui, sans-serif" font-size="72" font-weight="700">Interstellar Codex</text>
+  <text x="96" y="430" fill="#8aa0ba" font-family="system-ui, sans-serif" font-size="32">Reader-facing worldbuilding for the Sempiterni universe</text>
+</svg>

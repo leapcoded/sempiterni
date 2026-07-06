@@ -1,0 +1,24 @@
+---
+import type { TocItem } from "../lib/entries";
+
+interface Props {
+  toc: TocItem[];
+}
+
+const { toc } = Astro.props;
+---
+
+{toc.length > 0 ? (
+  <details class="panel mobile-toc">
+    <summary>On this page</summary>
+    <nav aria-label="Table of contents">
+      <ul>
+        {toc.map((item) => (
+          <li class={`toc-level-${item.level}`}>
+            <a href={`#${item.id}`}>{item.text}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  </details>
+) : null}

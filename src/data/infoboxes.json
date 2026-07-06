@@ -1,0 +1,107 @@
+{
+  "aran-sunderwood": {
+    "species": "Coyote",
+    "age": "42",
+    "role": "Scout and tracker",
+    "affiliation": "Wayfarer (Aeolian / Long Reach)",
+    "tags": ["Protagonist"]
+  },
+  "wren-emberlain": {
+    "species": "Sand cat",
+    "age": "33",
+    "role": "Tabularium archivist",
+    "affiliation": "Arbour (ex–Azure Branch)",
+    "tags": ["Protagonist"]
+  },
+  "atlas-faelan": {
+    "species": "Red fox",
+    "role": "Continuance Corps engineer",
+    "affiliation": "Azure Branch",
+    "tags": ["Protagonist"]
+  },
+  "aran-sunderwood-family-and-caravan": {
+    "role": "Family and caravan profile",
+    "affiliation": "Long Reach (Aeolian Wayfarers)",
+    "tags": ["Protagonist", "Wayfarer"]
+  },
+  "cassan-vale": {
+    "species": "Eurasian lynx",
+    "role": "Researcher",
+    "affiliation": "Scarlet Branch (Custodian programme)",
+    "tags": ["Antagonist"]
+  },
+  "tynan-auberone": {
+    "role": "Sprawl syndicate leader",
+    "affiliation": "The Sprawl",
+    "tags": ["Antagonist"]
+  },
+  "otis-audagar": {
+    "role": "Information broker",
+    "affiliation": "The Margin",
+    "tags": ["Antagonist"]
+  },
+  "voss-shearwall": {
+    "role": "Branch Head",
+    "affiliation": "Obsidian Branch",
+    "tags": ["Antagonist"]
+  },
+  "azure-branch": {
+    "type": "Branch",
+    "function": "Engineering and technical infrastructure",
+    "scope": "Reactors, atmosphere, water, power, transit, hull"
+  },
+  "obsidian-branch": {
+    "type": "Branch",
+    "function": "Security and public order",
+    "scope": "Investigations, surveillance, enforcement"
+  },
+  "scarlet-branch": {
+    "type": "Branch",
+    "function": "Military and Aetheris operations",
+    "scope": "Custodian programme, Installation sites"
+  },
+  "golden-branch": {
+    "type": "Branch",
+    "function": "Commerce and supply",
+    "scope": "Trade, allocation logistics, shadow markets"
+  },
+  "verdant-branch": {
+    "type": "Branch",
+    "function": "Agriculture and ecology",
+    "scope": "Food production, Badlands interface"
+  },
+  "violet-branch": {
+    "type": "Branch",
+    "function": "Culture and record",
+    "scope": "Archives, public narrative, Tabularium liaison"
+  },
+  "the-sprawl": {
+    "type": "Location",
+    "region": "Arbour — lower tiers",
+    "notes": "Dense, underinvested residential zones"
+  },
+  "the-tabularium": {
+    "type": "Location",
+    "region": "Arbour — hull core",
+    "notes": "Primary archive and restricted scholarship"
+  },
+  "the-frames": {
+    "type": "Location",
+    "region": "Outside city boundary",
+    "notes": "Aetheris arrays and Scarlet research facility"
+  },
+  "the-margin": {
+    "type": "Faction",
+    "region": "Cross-branch",
+    "notes": "Harbour network for flagged residents"
+  },
+  "the-crash": {
+    "type": "Event",
+    "era": "Founding",
+    "notes": "ARBOUR|05 cascade and planetary arrival"
+  },
+  "the-convergence-aetheris": {
+    "type": "Cosmology",
+    "notes": "Eldritch reality bleeding through the Reach"
+  }
+}

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sempiterni.lilpossum.xyz/sitemap-index.xml

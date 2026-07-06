@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import sitemap from "@astrojs/sitemap";
 import fs from "node:fs";
 
 function loadRedirects() {
@@ -17,4 +18,5 @@ export default defineConfig({
   output: "static",
   trailingSlash: "always",
   redirects: loadRedirects(),
+  integrations: [sitemap()],
 });

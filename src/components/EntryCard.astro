@@ -1,5 +1,6 @@
 ---
 import type { EntryMeta } from "../lib/entries";
+import EntryTypeBadge from "./EntryTypeBadge.astro";
 
 interface Props {
   entry: EntryMeta;
@@ -10,13 +11,16 @@ const { entry, showCategory = true } = Astro.props;
 ---
 
 <a class="entry-card" href={`/entry/${entry.slug}/`}>
-  {showCategory ? (
-    <div class="entry-meta">
-      <span>{entry.category}</span>
-      <span>•</span>
-      <span>{entry.section}</span>
-    </div>
-  ) : null}
+  <div class="entry-card-top">
+    <EntryTypeBadge entry={entry} />
+    {showCategory ? (
+      <div class="entry-meta">
+        <span>{entry.category}</span>
+        <span>•</span>
+        <span>{entry.section}</span>
+      </div>
+    ) : null}
+  </div>
   <h2>{entry.title}</h2>
   {entry.excerpt ? <p>{entry.excerpt}</p> : null}
 </a>

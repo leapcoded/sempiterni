@@ -1,0 +1,23 @@
+---
+import type { Infobox } from "../lib/infobox";
+
+interface Props {
+  infobox: Infobox;
+}
+
+const { infobox } = Astro.props;
+---
+
+<aside class="panel entry-infobox" aria-label="Entry summary">
+  <p class="eyebrow">{infobox.kind}</p>
+  <dl class="infobox-grid">
+    {infobox.fields.map((field) => (
+      <div class="infobox-row">
+        <dt>{field.label}</dt>
+        <dd>
+          {field.href ? <a href={field.href}>{field.value}</a> : field.value}
+        </dd>
+      </div>
+    ))}
+  </dl>
+</aside>
