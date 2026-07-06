@@ -789,6 +789,23 @@ a:hover {
   min-width: 520px;
 }
 
+.stub-banner {
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  border-color: rgba(180, 140, 255, 0.35);
+  background: rgba(180, 140, 255, 0.08);
+}
+
+.stub-banner p {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.stub-banner a {
+  font-weight: 600;
+}
+
 .site-footer {
   border-top: 1px solid var(--line);
   padding: 1.5rem 0 2rem;

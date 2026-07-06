@@ -1,4 +1,5 @@
 import type { EntryMeta } from "./entries";
+import { LINK_ALIASES } from "./link-aliases";
 
 function escapeRegex(text: string) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -28,6 +29,18 @@ function restoreMarkdown(text: string, placeholders: string[]) {
   return text.replace(/\x00PH(\d+)\x00/g, (_, index) => placeholders[Number(index)]);
 }
 
+function sealMarkdownLinks(text: string, linkPlaceholders: string[]) {
+  return text.replace(/\[[^\]]+\]\([^)]+\)/g, (match) => {
+    const token = `\x00LK${linkPlaceholders.length}\x00`;
+    linkPlaceholders.push(match);
+    return token;
+  });
+}
+
+function restoreMarkdownLinks(text: string, linkPlaceholders: string[]) {
+  return text.replace(/\x00LK(\d+)\x00/g, (_, index) => linkPlaceholders[Number(index)]);
+}
+
 export function buildLinkTerms(entries: EntryMeta[], excludeSlug?: string) {
   const terms = new Map<string, { title: string; slug: string }>();
 
@@ -54,6 +67,18 @@ export function buildLinkTerms(entries: EntryMeta[], excludeSlug?: string) {
     }
   }
 
+  for (const [alias, slug] of Object.entries(LINK_ALIASES)) {
+    if (slug === excludeSlug) continue;
+    const entry = entries.find((item) => item.slug === slug);
+    terms.set(alias.toLowerCase(), {
+      title: alias,
+      slug,
+    });
+    if (entry && !terms.has(entry.title.toLowerCase())) {
+      terms.set(entry.title.toLowerCase(), { title: entry.title, slug: entry.slug });
+    }
+  }
+
   return [...terms.values()].sort((a, b) => b.title.length - a.title.length);
 }
 
@@ -67,19 +92,22 @@ export function autoLinkMarkdown(content: string, entries: EntryMeta[], excludeS
     if (/^#{1,6}\s/.test(line)) return line;
 
     let next = line;
+    const linkPlaceholders: string[] = [];
 
     for (const term of terms) {
+      next = sealMarkdownLinks(next, linkPlaceholders);
       const pattern = termPattern(term.title);
       const regex = new RegExp(`(?<!\\[)${pattern}(?!\\])`, "gi");
       next = next.replace(regex, (match) => `[${match}](/entry/${term.slug}/)`);
     }
 
     for (const term of terms) {
+      next = sealMarkdownLinks(next, linkPlaceholders);
       const regex = new RegExp(`\\*${escapeRegex(term.title)}\\*`, "gi");
       next = next.replace(regex, `[${term.title}](/entry/${term.slug}/)`);
     }
 
-    return next;
+    return restoreMarkdownLinks(next, linkPlaceholders);
   });
 
   return restoreMarkdown(linkedLines.join("\n"), placeholders);

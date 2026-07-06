@@ -1,0 +1,24 @@
+---
+import type { StubInfo } from "../lib/entries";
+
+interface Props {
+  stub: StubInfo;
+}
+
+const { stub } = Astro.props;
+---
+
+<aside class="panel stub-banner" role="note">
+  <p class="eyebrow">Glossary pointer</p>
+  {stub.kind === "pointer" ? (
+    <p>
+      This entry is a short cross-reference. For the full article, see
+      <a href={`/entry/${stub.canonicalSlug}/`}>{stub.canonicalTitle}</a>.
+    </p>
+  ) : (
+    <p>
+      This is a brief glossary entry. A fuller article is available:
+      <a href={`/entry/${stub.canonicalSlug}/`}>{stub.canonicalTitle}</a>.
+    </p>
+  )}
+</aside>

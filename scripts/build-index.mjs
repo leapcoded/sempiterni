@@ -3,6 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { sanitizeReaderContent, stripGlossaryHeading } from "./sanitize-content.mjs";
 
+const linkAliases = JSON.parse(
+  fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../src/data/link-aliases.json"), "utf8"),
+);
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const loreDir = path.join(root, "lore");
@@ -175,6 +179,53 @@ function splitGlossary(content) {
   return entries;
 }
 
+function resolveAliasSlug(label, entries) {
+  const direct = linkAliases[label] || linkAliases[label.trim()];
+  if (direct) return direct;
+
+  const lower = label.toLowerCase();
+  const aliasEntry = Object.entries(linkAliases).find(([key]) => key.toLowerCase() === lower);
+  if (aliasEntry) return aliasEntry[1];
+
+  const byTitle = entries.find((entry) => entry.title.toLowerCase() === lower);
+  if (byTitle) return byTitle.slug;
+
+  const termSlug = slugify(label);
+  return entries.find((entry) => entry.slug === termSlug || entry.slug.endsWith(`-${termSlug}`))?.slug ?? null;
+}
+
+function findCanonicalSlug(entry, entries) {
+  const seeMatch = entry.content.trim().match(/^See \*([^*]+)\*/i);
+  if (seeMatch) {
+    return resolveAliasSlug(seeMatch[1].trim(), entries);
+  }
+
+  if (entry.slug.startsWith("glossary-")) {
+    const base = entry.slug.slice("glossary-".length);
+    const full = entries.find((item) => item.slug === base && !item.slug.startsWith("glossary-"));
+    if (full) return full.slug;
+  }
+
+  if (entry.slug === "glossary-cassan-vale") return "cassan-vale";
+
+  return null;
+}
+
+function isStubEntry(entry, canonicalSlug) {
+  if (!canonicalSlug || canonicalSlug === entry.slug) return false;
+  const words = entry.content.trim().split(/\s+/).filter(Boolean).length;
+  if (/^See \*/i.test(entry.content.trim())) return true;
+  return entry.tags.includes("glossary") && words < 50;
+}
+
+function annotateStubs(entries) {
+  for (const entry of entries) {
+    const canonicalSlug = findCanonicalSlug(entry, entries);
+    entry.canonicalSlug = canonicalSlug;
+    entry.isStub = isStubEntry(entry, canonicalSlug);
+  }
+}
+
 function linkRelations(entries) {
   const byTitle = new Map();
   const bySlug = new Map();
@@ -185,14 +236,23 @@ function linkRelations(entries) {
     byTitle.set(entry.title.toLowerCase(), entry.slug);
   }
 
+  for (const [alias, slug] of Object.entries(linkAliases)) {
+    byTitle.set(slugify(alias), slug);
+    byTitle.set(alias.toLowerCase(), slug);
+  }
+
   for (const entry of entries) {
     entry.linkedRelations = entry.relations
       .map((label) => {
-        const key = slugify(stripMarkdown(label));
-        const slug = byTitle.get(key) || byTitle.get(label.toLowerCase());
+        const clean = stripMarkdown(label);
+        const key = slugify(clean);
+        const slug =
+          byTitle.get(key) ||
+          byTitle.get(clean.toLowerCase()) ||
+          resolveAliasSlug(clean, entries);
         if (!slug || slug === entry.slug) return null;
         const target = bySlug.get(slug);
-        return target ? { label: target.title, slug: target.slug } : { label: stripMarkdown(label), slug: null };
+        return target ? { label: target.title, slug: target.slug } : { label: clean, slug: null };
       })
       .filter(Boolean)
       .slice(0, 12);
@@ -238,6 +298,7 @@ for (const entry of entries) {
 }
 
 linkRelations(canonicalEntries);
+annotateStubs(canonicalEntries);
 
 canonicalEntries.sort((a, b) => a.title.localeCompare(b.title));
 

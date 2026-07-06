@@ -2,11 +2,13 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Breadcrumbs from "../../components/Breadcrumbs.astro";
 import EntrySidebar from "../../components/EntrySidebar.astro";
+import EntryStubBanner from "../../components/EntryStubBanner.astro";
 import {
   getEntries,
   getEntry,
   getEntryContent,
   getAdjacentEntries,
+  getStubInfo,
   extractToc,
   renderMarkdown,
   categoryUrl,
@@ -34,6 +36,7 @@ const raw = fs.existsSync(contentPath) ? fs.readFileSync(contentPath, "utf8") : 
 const toc = extractToc(raw);
 const html = renderMarkdown(raw, slug!);
 const { prev, next } = getAdjacentEntries(entry);
+const stub = getStubInfo(entry, raw);
 ---
 
 <BaseLayout title={`${entry.title} — Sempiterni Codex`} description={entry.excerpt}>
@@ -58,6 +61,8 @@ const { prev, next } = getAdjacentEntries(entry);
             ))}
           </div>
         </header>
+
+        {stub ? <EntryStubBanner stub={stub} /> : null}
 
         <div class="panel entry-body" set:html={html} />
 
