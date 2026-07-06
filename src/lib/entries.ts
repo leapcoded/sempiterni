@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { marked } from "marked";
 import { autoLinkMarkdown } from "./auto-link";
+import { resolveAliasSlug } from "./link-aliases";
 
 export type EntryMeta = {
   slug: string;
@@ -14,6 +15,8 @@ export type EntryMeta = {
   linkedRelations: { label: string; slug: string | null }[];
   excerpt: string;
   sourcePath: string;
+  canonicalSlug?: string | null;
+  isStub?: boolean;
 };
 
 export type EntriesManifest = {
@@ -211,10 +214,14 @@ function addHeadingIds(html: string) {
   });
 }
 
+function wrapTables(html: string) {
+  return html.replace(/<table[\s\S]*?<\/table>/g, (table) => `<div class="table-scroll">${table}</div>`);
+}
+
 export function renderMarkdown(content: string, slug?: string) {
   const linked = autoLinkMarkdown(content, manifest.entries, slug);
   const html = marked.parse(linked, { async: false }) as string;
-  return addHeadingIds(html);
+  return wrapTables(addHeadingIds(html));
 }
 
 export function getEntryContent(slug: string) {
@@ -236,4 +243,33 @@ export function sectionUrl(category: string | CategoryGroup, section: string | S
 
 export function tagUrl(tag: string) {
   return `/tag/${slugify(tag)}/`;
+}
+
+export type StubInfo = {
+  canonicalSlug: string;
+  canonicalTitle: string;
+  kind: "pointer" | "short-glossary";
+};
+
+export function getStubInfo(entry: EntryMeta, content: string): StubInfo | null {
+  if (!entry.canonicalSlug || entry.canonicalSlug === entry.slug) return null;
+  if (!entry.isStub) return null;
+
+  const canonical = getEntry(entry.canonicalSlug);
+  if (!canonical) return null;
+
+  const trimmed = content.trim();
+  const isPointer = /^See \*/i.test(trimmed);
+
+  return {
+    canonicalSlug: entry.canonicalSlug,
+    canonicalTitle: canonical.title,
+    kind: isPointer ? "pointer" : "short-glossary",
+  };
+}
+
+export function resolveReferenceLabel(label: string) {
+  const slug = resolveAliasSlug(label, manifest.entries);
+  if (!slug) return null;
+  return getEntry(slug);
 }

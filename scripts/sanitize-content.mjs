@@ -5,12 +5,18 @@ const ITALIC_AUTHOR_TAIL =
   /\n\*(What This Means for the Story|Open Follow-Ups|Doran's Origin)\*\s*\n[\s\S]*$/i;
 
 export function decodeEntities(text) {
-  return text
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+  let decoded = text;
+  for (let i = 0; i < 3; i += 1) {
+    const next = decoded
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+    if (next === decoded) break;
+    decoded = next;
+  }
+  return decoded;
 }
 
 function stripInlineAuthorReferences(text) {
@@ -32,7 +38,22 @@ function stripInlineAuthorReferences(text) {
     .replace(/Worth a future decision \(see Open Follow-Ups\) whether/gi, "Whether")
     .replace(/left open for a future naming pass \(see Open Follow-Ups\)/gi, "not yet named")
     .replace(/left open for now \(see Follow-Ups\)/gi, "not yet named")
-    .replace(/whose name is left open for a future naming pass/gi, "whose name is not yet established");
+    .replace(/whose name is left open for a future naming pass/gi, "whose name is not yet established")
+    .replace(/pending a naming pass/gi, "not yet named")
+    .replace(/,\s*pending a naming pass/gi, "")
+    .replace(/— unnamed, pending a naming pass —/gi, "— unnamed —");
+}
+
+function stripAuthorMetadata(text) {
+  return text
+    .replace(/\*\*Author-level only[^*]*\*\*[^.]*\./gi, "")
+    .replace(/\*\*Author-level only[\s\S]*?(?=\n\n|$)/gi, "")
+    .replace(/\s*per \*The Five Arks — Series Spine\*\./gi, "")
+    .replace(/\s*Carries Five Arks Thread \d+[^.]*\./gi, "")
+    .replace(/flagged for drafting\.?/gi, "")
+    .replace(/\s*Full documents?:[^.\n]+(?:\.[^.\n]+)?\.?/gi, "")
+    .replace(/\s*Full document:[^.\n]+\./gi, "")
+    .replace(/\*Note:[^*]+\*/gi, "");
 }
 
 function unwrapItalicParagraphs(text) {
@@ -45,6 +66,10 @@ function stripTodoLines(text) {
     .replace(/^-\s*\\?\[[ x]\]\\?.*$/gim, "");
 }
 
+export function stripGlossaryHeading(content) {
+  return content.replace(/^###\s+[^\n]+\n+/, "").trim();
+}
+
 export function sanitizeReaderContent(content) {
   let text = decodeEntities(content);
 
@@ -54,14 +79,10 @@ export function sanitizeReaderContent(content) {
   text = text.replace(/^(\*[^*\n]*Lives in:[\s\S]*?\*\s*\n)+/m, "");
   text = text.replace(/^\*A note on [^*]+\*\s*\n*/im, "");
 
-  text = text.replace(/\*\*Author-level only[^*]*\*\*[^\n]*/gi, "");
-  text = text.replace(/\*Note:[^*]+\*/gi, "");
+  text = stripAuthorMetadata(text);
 
   text = text.replace(/\s*\*Source:[^*]+\*/gi, "");
   text = text.replace(/\s*\\\*Source:[^\\]+\\\*/gi, "");
-
-  text = text.replace(/\s*Full documents?:[^.\n]+(?:\.[^.\n]+)?\.?/gi, "");
-  text = text.replace(/\s*Full document:[^.\n]+\./gi, "");
 
   text = stripInlineAuthorReferences(text);
   text = stripTodoLines(text);

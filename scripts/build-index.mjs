@@ -1,12 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { sanitizeReaderContent } from "./sanitize-content.mjs";
+import { sanitizeReaderContent, stripGlossaryHeading } from "./sanitize-content.mjs";
+
+const linkAliases = JSON.parse(
+  fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../src/data/link-aliases.json"), "utf8"),
+);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const loreDir = path.join(root, "lore");
 const outFile = path.join(root, "src/data/entries.json");
+const redirectsFile = path.join(root, "src/data/redirects.json");
 
 const CATEGORY_TAGS = {
   "World & Lore": "world",
@@ -157,6 +162,7 @@ function splitGlossary(content) {
     const rawTitle = stripMarkdown(heading[1]).replace(/\s*\(see also:[^)]+\)\s*/i, "").trim();
     const slug = `glossary-${slugify(rawTitle)}`;
     const sanitized = sanitizeReaderContent(part.trim());
+    const body = stripGlossaryHeading(sanitized);
     entries.push({
       slug,
       title: rawTitle,
@@ -164,13 +170,60 @@ function splitGlossary(content) {
       section: "Terms",
       tags: ["glossary", "term"],
       relations: extractRelations(part),
-      excerpt: extractExcerpt(sanitized),
+      excerpt: extractExcerpt(body),
       sourcePath: "glossary.md",
-      content: sanitized,
+      content: body,
     });
   }
 
   return entries;
+}
+
+function resolveAliasSlug(label, entries) {
+  const direct = linkAliases[label] || linkAliases[label.trim()];
+  if (direct) return direct;
+
+  const lower = label.toLowerCase();
+  const aliasEntry = Object.entries(linkAliases).find(([key]) => key.toLowerCase() === lower);
+  if (aliasEntry) return aliasEntry[1];
+
+  const byTitle = entries.find((entry) => entry.title.toLowerCase() === lower);
+  if (byTitle) return byTitle.slug;
+
+  const termSlug = slugify(label);
+  return entries.find((entry) => entry.slug === termSlug || entry.slug.endsWith(`-${termSlug}`))?.slug ?? null;
+}
+
+function findCanonicalSlug(entry, entries) {
+  const seeMatch = entry.content.trim().match(/^See \*([^*]+)\*/i);
+  if (seeMatch) {
+    return resolveAliasSlug(seeMatch[1].trim(), entries);
+  }
+
+  if (entry.slug.startsWith("glossary-")) {
+    const base = entry.slug.slice("glossary-".length);
+    const full = entries.find((item) => item.slug === base && !item.slug.startsWith("glossary-"));
+    if (full) return full.slug;
+  }
+
+  if (entry.slug === "glossary-cassan-vale") return "cassan-vale";
+
+  return null;
+}
+
+function isStubEntry(entry, canonicalSlug) {
+  if (!canonicalSlug || canonicalSlug === entry.slug) return false;
+  const words = entry.content.trim().split(/\s+/).filter(Boolean).length;
+  if (/^See \*/i.test(entry.content.trim())) return true;
+  return entry.tags.includes("glossary") && words < 50;
+}
+
+function annotateStubs(entries) {
+  for (const entry of entries) {
+    const canonicalSlug = findCanonicalSlug(entry, entries);
+    entry.canonicalSlug = canonicalSlug;
+    entry.isStub = isStubEntry(entry, canonicalSlug);
+  }
 }
 
 function linkRelations(entries) {
@@ -183,14 +236,23 @@ function linkRelations(entries) {
     byTitle.set(entry.title.toLowerCase(), entry.slug);
   }
 
+  for (const [alias, slug] of Object.entries(linkAliases)) {
+    byTitle.set(slugify(alias), slug);
+    byTitle.set(alias.toLowerCase(), slug);
+  }
+
   for (const entry of entries) {
     entry.linkedRelations = entry.relations
       .map((label) => {
-        const key = slugify(stripMarkdown(label));
-        const slug = byTitle.get(key) || byTitle.get(label.toLowerCase());
+        const clean = stripMarkdown(label);
+        const key = slugify(clean);
+        const slug =
+          byTitle.get(key) ||
+          byTitle.get(clean.toLowerCase()) ||
+          resolveAliasSlug(clean, entries);
         if (!slug || slug === entry.slug) return null;
         const target = bySlug.get(slug);
-        return target ? { label: target.title, slug: target.slug } : { label: stripMarkdown(label), slug: null };
+        return target ? { label: target.title, slug: target.slug } : { label: clean, slug: null };
       })
       .filter(Boolean)
       .slice(0, 12);
@@ -198,30 +260,71 @@ function linkRelations(entries) {
 }
 
 const entries = walkMarkdown(loreDir);
-linkRelations(entries);
 
-entries.sort((a, b) => a.title.localeCompare(b.title));
+for (const entry of entries) {
+  if (entry.excerpt || entry.sourcePath !== "glossary.md") continue;
+  const seeMatch = entry.content.match(/^See \*([^*]+)\*\.?$/i);
+  if (!seeMatch) continue;
+  const term = seeMatch[1].trim().toLowerCase();
+  const termSlug = slugify(seeMatch[1].trim());
+  const target = entries.find(
+    (item) =>
+      item.title.toLowerCase() === term ||
+      item.title.toLowerCase().includes(term) ||
+      item.slug.includes(termSlug),
+  );
+  if (target?.excerpt) entry.excerpt = target.excerpt;
+}
+
+const redirects = {};
+const canonicalEntries = [];
+
+for (const entry of entries) {
+  if (!entry.slug.startsWith("glossary-")) {
+    canonicalEntries.push(entry);
+    continue;
+  }
+
+  const canonical = entries.find(
+    (item) => !item.slug.startsWith("glossary-") && item.title.toLowerCase() === entry.title.toLowerCase(),
+  );
+
+  if (canonical) {
+    redirects[entry.slug] = canonical.slug;
+    continue;
+  }
+
+  canonicalEntries.push(entry);
+}
+
+linkRelations(canonicalEntries);
+annotateStubs(canonicalEntries);
+
+canonicalEntries.sort((a, b) => a.title.localeCompare(b.title));
 
 const tagSet = new Set();
-for (const entry of entries) entry.tags.forEach((tag) => tagSet.add(tag));
+for (const entry of canonicalEntries) entry.tags.forEach((tag) => tagSet.add(tag));
 
 const manifest = {
   generatedAt: new Date().toISOString(),
   series: "Sempiterni",
-  entryCount: entries.length,
+  entryCount: canonicalEntries.length,
   tags: [...tagSet].sort(),
-  entries: entries.map(({ content, ...meta }) => meta),
+  entries: canonicalEntries.map(({ content, ...meta }) => meta),
 };
 
 fs.mkdirSync(path.dirname(outFile), { recursive: true });
 fs.writeFileSync(outFile, JSON.stringify(manifest, null, 2));
+fs.writeFileSync(redirectsFile, JSON.stringify(redirects, null, 2));
 
 const contentDir = path.join(root, "src/content/entries");
 fs.rmSync(contentDir, { recursive: true, force: true });
 fs.mkdirSync(contentDir, { recursive: true });
 
-for (const entry of entries) {
+for (const entry of canonicalEntries) {
   fs.writeFileSync(path.join(contentDir, `${entry.slug}.md`), entry.content);
 }
 
-console.log(`Indexed ${entries.length} entries with ${manifest.tags.length} tags.`);
+console.log(
+  `Indexed ${canonicalEntries.length} entries with ${manifest.tags.length} tags (${Object.keys(redirects).length} redirects).`,
+);
