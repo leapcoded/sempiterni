@@ -751,6 +751,44 @@ a:hover {
   color: #f3d2a0;
 }
 
+.entry-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 0.92rem;
+}
+
+.entry-body th,
+.entry-body td {
+  border: 1px solid var(--line);
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.entry-body th {
+  background: rgba(93, 228, 255, 0.08);
+  color: white;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.entry-body tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.table-scroll {
+  overflow-x: auto;
+  margin: 1.25rem 0;
+}
+
+.table-scroll table {
+  margin: 0;
+  min-width: 520px;
+}
+
 .site-footer {
   border-top: 1px solid var(--line);
   padding: 1.5rem 0 2rem;

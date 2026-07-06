@@ -1,12 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { sanitizeReaderContent } from "./sanitize-content.mjs";
+import { sanitizeReaderContent, stripGlossaryHeading } from "./sanitize-content.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const loreDir = path.join(root, "lore");
 const outFile = path.join(root, "src/data/entries.json");
+const redirectsFile = path.join(root, "src/data/redirects.json");
 
 const CATEGORY_TAGS = {
   "World & Lore": "world",
@@ -157,6 +158,7 @@ function splitGlossary(content) {
     const rawTitle = stripMarkdown(heading[1]).replace(/\s*\(see also:[^)]+\)\s*/i, "").trim();
     const slug = `glossary-${slugify(rawTitle)}`;
     const sanitized = sanitizeReaderContent(part.trim());
+    const body = stripGlossaryHeading(sanitized);
     entries.push({
       slug,
       title: rawTitle,
@@ -164,9 +166,9 @@ function splitGlossary(content) {
       section: "Terms",
       tags: ["glossary", "term"],
       relations: extractRelations(part),
-      excerpt: extractExcerpt(sanitized),
+      excerpt: extractExcerpt(body),
       sourcePath: "glossary.md",
-      content: sanitized,
+      content: body,
     });
   }
 
@@ -198,30 +200,70 @@ function linkRelations(entries) {
 }
 
 const entries = walkMarkdown(loreDir);
-linkRelations(entries);
 
-entries.sort((a, b) => a.title.localeCompare(b.title));
+for (const entry of entries) {
+  if (entry.excerpt || entry.sourcePath !== "glossary.md") continue;
+  const seeMatch = entry.content.match(/^See \*([^*]+)\*\.?$/i);
+  if (!seeMatch) continue;
+  const term = seeMatch[1].trim().toLowerCase();
+  const termSlug = slugify(seeMatch[1].trim());
+  const target = entries.find(
+    (item) =>
+      item.title.toLowerCase() === term ||
+      item.title.toLowerCase().includes(term) ||
+      item.slug.includes(termSlug),
+  );
+  if (target?.excerpt) entry.excerpt = target.excerpt;
+}
+
+const redirects = {};
+const canonicalEntries = [];
+
+for (const entry of entries) {
+  if (!entry.slug.startsWith("glossary-")) {
+    canonicalEntries.push(entry);
+    continue;
+  }
+
+  const canonical = entries.find(
+    (item) => !item.slug.startsWith("glossary-") && item.title.toLowerCase() === entry.title.toLowerCase(),
+  );
+
+  if (canonical) {
+    redirects[entry.slug] = canonical.slug;
+    continue;
+  }
+
+  canonicalEntries.push(entry);
+}
+
+linkRelations(canonicalEntries);
+
+canonicalEntries.sort((a, b) => a.title.localeCompare(b.title));
 
 const tagSet = new Set();
-for (const entry of entries) entry.tags.forEach((tag) => tagSet.add(tag));
+for (const entry of canonicalEntries) entry.tags.forEach((tag) => tagSet.add(tag));
 
 const manifest = {
   generatedAt: new Date().toISOString(),
   series: "Sempiterni",
-  entryCount: entries.length,
+  entryCount: canonicalEntries.length,
   tags: [...tagSet].sort(),
-  entries: entries.map(({ content, ...meta }) => meta),
+  entries: canonicalEntries.map(({ content, ...meta }) => meta),
 };
 
 fs.mkdirSync(path.dirname(outFile), { recursive: true });
 fs.writeFileSync(outFile, JSON.stringify(manifest, null, 2));
+fs.writeFileSync(redirectsFile, JSON.stringify(redirects, null, 2));
 
 const contentDir = path.join(root, "src/content/entries");
 fs.rmSync(contentDir, { recursive: true, force: true });
 fs.mkdirSync(contentDir, { recursive: true });
 
-for (const entry of entries) {
+for (const entry of canonicalEntries) {
   fs.writeFileSync(path.join(contentDir, `${entry.slug}.md`), entry.content);
 }
 
-console.log(`Indexed ${entries.length} entries with ${manifest.tags.length} tags.`);
+console.log(
+  `Indexed ${canonicalEntries.length} entries with ${manifest.tags.length} tags (${Object.keys(redirects).length} redirects).`,
+);

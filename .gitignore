@@ -5,6 +5,7 @@ dist/
 
 # generated codex index
 src/data/entries.json
+src/data/redirects.json
 src/content/entries/
 
 # dependencies

@@ -211,10 +211,14 @@ function addHeadingIds(html: string) {
   });
 }
 
+function wrapTables(html: string) {
+  return html.replace(/<table[\s\S]*?<\/table>/g, (table) => `<div class="table-scroll">${table}</div>`);
+}
+
 export function renderMarkdown(content: string, slug?: string) {
   const linked = autoLinkMarkdown(content, manifest.entries, slug);
   const html = marked.parse(linked, { async: false }) as string;
-  return addHeadingIds(html);
+  return wrapTables(addHeadingIds(html));
 }
 
 export function getEntryContent(slug: string) {
